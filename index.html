@@ -1933,26 +1933,67 @@ try {
   const ua = navigator.userAgent;
 
   function getOS() {
-    if (/Windows NT 10/.test(ua)) return 'Windows 10';
-    if (/Windows NT 6\.3/.test(ua)) return 'Windows 8.1';
-    if (/Windows/.test(ua)) return 'Windows';
-    if (/Android/.test(ua)) { const m = ua.match(/Android ([\d.]+)/); return 'Android ' + (m ? m[1] : ''); }
-    if (/iPhone|iPad/.test(ua)) { const m = ua.match(/OS ([\d_]+)/); return 'iOS ' + (m ? m[1].replace(/_/g,'.') : ''); }
-    if (/Mac OS X/.test(ua)) return 'macOS';
+    // Windows 11: NT 10.0 + userAgentData or high build numbers
+    if (/Windows/.test(ua)) {
+      try {
+        if (navigator.userAgentData) {
+          // Use modern API if available
+          const hints = navigator.userAgentData;
+          if (hints.platform === 'Windows') {
+            // Can't distinguish 10 vs 11 without high-entropy hints, use NT version
+          }
+        }
+      } catch(e) {}
+      if (/Windows NT 10\.0/.test(ua)) {
+        // Check for Windows 11 indicator in UA hints
+        if (navigator.userAgentData && navigator.userAgentData.brands) {
+          return 'Windows 10/11';
+        }
+        return 'Windows 10/11';
+      }
+      if (/Windows NT 6\.3/.test(ua)) return 'Windows 8.1';
+      if (/Windows NT 6\.2/.test(ua)) return 'Windows 8';
+      if (/Windows NT 6\.1/.test(ua)) return 'Windows 7';
+      return 'Windows';
+    }
+    if (/Android/.test(ua)) {
+      const m = ua.match(/Android ([\d.]+)/);
+      const ver = m ? m[1] : '';
+      const major = parseInt(ver);
+      const names = {16:'16',15:'15',14:'14',13:'13',12:'12',11:'11',10:'10',9:'Pie',8:'Oreo',7:'Nougat'};
+      return 'Android ' + ver + (names[major] ? ' (' + names[major] + ')' : '');
+    }
+    if (/iPhone|iPad/.test(ua)) {
+      const m = ua.match(/OS ([\d_]+)/);
+      return 'iOS ' + (m ? m[1].replace(/_/g,'.') : '');
+    }
+    if (/Mac OS X/.test(ua)) {
+      const m = ua.match(/Mac OS X ([\d_]+)/);
+      return 'macOS ' + (m ? m[1].replace(/_/g,'.') : '');
+    }
+    if (/CrOS/.test(ua)) return 'ChromeOS';
     if (/Linux/.test(ua)) return 'Linux';
     return 'Unknown OS';
   }
   function getBrowser() {
-    if (/Edg\//.test(ua)) return 'Microsoft Edge';
-    if (/OPR\/|Opera/.test(ua)) return 'Opera';
-    if (/Chrome\//.test(ua)) { const m = ua.match(/Chrome\/([\d.]+)/); return 'Chrome ' + (m ? m[1] : ''); }
-    if (/Firefox\//.test(ua)) { const m = ua.match(/Firefox\/([\d.]+)/); return 'Firefox ' + (m ? m[1] : ''); }
+    // Order matters — check Edge and Opera before Chrome
+    if (/Edg\//.test(ua)) { const m = ua.match(/Edg\/([\d.]+)/); return 'Edge ' + (m ? m[1].split('.')[0] : ''); }
+    if (/OPR\//.test(ua)) { const m = ua.match(/OPR\/([\d.]+)/); return 'Opera ' + (m ? m[1].split('.')[0] : ''); }
+    if (/Opera/.test(ua)) return 'Opera';
+    if (/SamsungBrowser\//.test(ua)) { const m = ua.match(/SamsungBrowser\/([\d.]+)/); return 'Samsung Browser ' + (m ? m[1] : ''); }
+    if (/UCBrowser\//.test(ua)) return 'UC Browser';
+    if (/YaBrowser\//.test(ua)) return 'Yandex Browser';
+    if (/Firefox\//.test(ua)) { const m = ua.match(/Firefox\/([\d.]+)/); return 'Firefox ' + (m ? m[1].split('.')[0] : ''); }
+    if (/Chrome\//.test(ua)) { const m = ua.match(/Chrome\/([\d.]+)/); return 'Chrome ' + (m ? m[1].split('.')[0] : ''); }
     if (/Safari\//.test(ua) && !/Chrome/.test(ua)) { const m = ua.match(/Version\/([\d.]+)/); return 'Safari ' + (m ? m[1] : ''); }
+    if (/MSIE|Trident/.test(ua)) return 'Internet Explorer';
     return 'Unknown Browser';
   }
   function getDeviceType() {
-    if (/Tablet|iPad/.test(ua)) return 'Tablet';
-    if (/Mobi|Android|iPhone/.test(ua)) return 'Mobile';
+    if (/iPad/.test(ua)) return 'Tablet';
+    if (/Android/.test(ua) && !/Mobile/.test(ua)) return 'Tablet';
+    if (/Tablet/.test(ua)) return 'Tablet';
+    if (/Mobi|Android|iPhone|iPod/.test(ua)) return 'Mobile';
     return 'Desktop';
   }
   function getConnectionType() {
@@ -1960,15 +2001,17 @@ try {
     if (!conn) return 'Unknown';
     if (conn.type === 'wifi') return 'WiFi';
     if (conn.type === 'cellular') return 'Mobile Data';
-    if (conn.effectiveType) return conn.effectiveType.toUpperCase() + ' (est.)';
+    if (conn.effectiveType === '4g') return '4G';
+    if (conn.effectiveType === '3g') return '3G';
+    if (conn.effectiveType === '2g') return '2G';
+    if (conn.effectiveType === 'slow-2g') return 'Slow 2G';
+    if (conn.effectiveType) return conn.effectiveType.toUpperCase();
     return conn.type || 'Unknown';
   }
 
   const cpuCores = navigator.hardwareConcurrency || 'N/A';
   const deviceRAM = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'N/A';
   const screenDPI = Math.round(window.devicePixelRatio * 96) + ' DPI (×' + window.devicePixelRatio + ')';
-  const orientation = (screen.orientation && screen.orientation.type) ? screen.orientation.type : (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait');
-  const colorScheme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'Dark Mode' : 'Light Mode';
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'Yes' : 'No';
   const prefersHighContrast = window.matchMedia('(prefers-contrast: more)').matches ? 'Yes' : 'No';
 
@@ -2026,8 +2069,14 @@ try {
     }).catch(() => { geoData = { ip:'N/A', city:'N/A', region:'N/A', country:'N/A', isp:'N/A' }; });
 
   async function saveVisit() {
-    if (isUnconfigured() || !db) return;
+    if (!db) return;
     const timeSpent = Math.round((Date.now() - startTime) / 1000);
+    // Get live values at save time for accuracy
+    const liveOrientation = (screen.orientation && screen.orientation.type)
+      ? screen.orientation.type
+      : (window.innerWidth > window.innerHeight ? 'landscape-primary' : 'portrait-primary');
+    const liveColorScheme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ? 'Dark Mode' : 'Light Mode';
     const visit = {
       timestamp: serverTimestamp(),
       timeSpentSec: timeSpent,
@@ -2041,8 +2090,10 @@ try {
       clickCount: clicks.length,
       clicks: clicks.slice(0, 50),
       mousePoints: mousePoints.slice(0, 100),
-      cpuCores, deviceRAM, screenDPI, orientation,
-      colorScheme, prefersReducedMotion, prefersHighContrast,
+      cpuCores, deviceRAM, screenDPI,
+      orientation: liveOrientation,
+      colorScheme: liveColorScheme,
+      prefersReducedMotion, prefersHighContrast,
       pageLoadMs,
       scrollDepthPct: maxScrollDepth + '%',
       resumeDownloaded: resumeDownloaded ? 'Yes' : 'No',
@@ -2245,8 +2296,12 @@ async function dbRender(visits) {
 }
 
 window.dbLoadAndRender = async function() {
+  // Show a quick spinner on the refresh button
+  const btn = document.querySelector('.db-btn[onclick="dbLoadAndRender()"]');
+  if (btn) { btn.textContent = '↻ Loading…'; btn.disabled = true; }
   const visits = await dbFetchVisits();
   dbRender(visits);
+  if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
 };
 
 // ════════════════════════════════════
@@ -2388,20 +2443,25 @@ window.openDashboard = async function() {
   document.body.style.overflow = 'hidden';
   if (typeof renderFailedLogins === 'function') renderFailedLogins();
 
+  const loadingOverlay = document.getElementById('dbLoadingOverlay');
+
   if (!dbLoaded) {
     dbLoaded = true;
-    // Reset loading bar animation
+    loadingOverlay.style.display = 'flex';
     const bar = document.querySelector('.db-loading-bar');
     bar.style.animation = 'none';
-    bar.offsetHeight; // reflow
+    bar.offsetHeight;
     bar.style.animation = '';
-
     setTimeout(async () => {
       await dbLoadAndRender();
       renderFailedLogins();
-      document.getElementById('dbLoadingOverlay').style.display = 'none';
+      loadingOverlay.style.display = 'none';
       dbRefreshTimer = setInterval(dbLoadAndRender, 30000);
-    }, 1600);
+    }, 1200);
+  } else {
+    // Already loaded before — just refresh data silently
+    dbLoadAndRender();
+    renderFailedLogins();
   }
 };
 
