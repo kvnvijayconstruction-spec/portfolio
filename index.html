@@ -1770,7 +1770,7 @@ document.addEventListener('keydown', function(e) {
     </div>
   </div>
 
-  <div id="dbSetupBanner">
+  <div id="dbSetupBanner" style="display:none">
     ⚠️ <strong>Firebase not configured yet.</strong> Find the <code>firebaseConfig</code> object in this file and paste your actual Firebase project credentials. <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--gold)">Get your config here →</a>
   </div>
 
@@ -1905,14 +1905,15 @@ document.addEventListener('keydown', function(e) {
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-// ── PASTE YOUR FIREBASE CONFIG HERE ──────────────────────────
+// ── FIREBASE CONFIG ──────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyAbc123...",
-  authDomain: "vijay-portfolio-xxx.firebaseapp.com",
-  projectId: "vijay-portfolio-xxx",
-  storageBucket: "vijay-portfolio-xxx.appspot.com",
-  messagingSenderId: "987654321",
-  appId: "1:987654321:web:abcdef123456"
+  apiKey: "AIzaSyDer3LaOLu_dYeEIxHagPbsp321nHbqrTc",
+  authDomain: "vijay-portfolio-a3343.firebaseapp.com",
+  projectId: "vijay-portfolio-a3343",
+  storageBucket: "vijay-portfolio-a3343.firebasestorage.app",
+  messagingSenderId: "174468958974",
+  appId: "1:174468958974:web:52d1aa57e51cca576b33af",
+  measurementId: "G-9PYZ83KTC5"
 };
 // ─────────────────────────────────────────────────────────────
 
