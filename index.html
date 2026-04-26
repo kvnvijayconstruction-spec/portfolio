@@ -1918,7 +1918,7 @@ const firebaseConfig = {
 // ─────────────────────────────────────────────────────────────
 
 let app, db;
-function isUnconfigured() { return firebaseConfig.apiKey === 'PASTE_YOUR_API_KEY'; }
+function isUnconfigured() { return false; }
 
 try {
   app = initializeApp(firebaseConfig);
@@ -2060,21 +2060,26 @@ try {
 // ════════════════════════════════════
 
 async function dbFetchVisits() {
-  if (isUnconfigured() || !db) return [];
+  if (!db) return [];
   try {
-    const q = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(200));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await getDocs(collection(db, 'visitors'));
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // sort by timestamp descending in JS to avoid needing a Firestore index
+    docs.sort((a, b) => {
+      const ta = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp || 0);
+      const tb = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp || 0);
+      return tb - ta;
+    });
+    return docs.slice(0, 200);
   } catch(e) {
     console.warn('Dashboard fetch error', e);
-    document.getElementById('dbSetupBanner').style.display = 'block';
     return [];
   }
 }
 
 window.dbClearData = async function() {
   if (!confirm('Delete ALL visitor records from Firebase? This cannot be undone.')) return;
-  if (isUnconfigured() || !db) { alert('Firebase not configured yet.'); return; }
+  if (!db) { alert('Firebase not connected.'); return; }
   try {
     const snap = await getDocs(collection(db, 'visitors'));
     await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'visitors', d.id))));
@@ -2240,12 +2245,6 @@ async function dbRender(visits) {
 }
 
 window.dbLoadAndRender = async function() {
-  if (isUnconfigured()) {
-    document.getElementById('dbSetupBanner').style.display = 'block';
-    document.getElementById('dbLoadingOverlay').style.display = 'none';
-    dbRender([]);
-    return;
-  }
   const visits = await dbFetchVisits();
   dbRender(visits);
 };
